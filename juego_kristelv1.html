@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎮 El Juego de Kristel 💖</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a0a2e;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; font-family: 'Nunito', sans-serif; overflow: hidden; user-select: none;
+    }
+    #title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1rem; color: #ff6eb4;
+      text-shadow: 3px 3px 0 #8b0057, 0 0 20px #ff6eb4;
+      margin-bottom: 10px; letter-spacing: 2px; text-align: center;
+    }
+    #score-bar {
+      display: flex; gap: 24px; font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem; color: #fff;
+      background: rgba(0,0,0,0.5); padding: 6px 20px;
+      border-radius: 4px; margin-bottom: 8px;
+      border: 2px solid #ff6eb4;
+    }
+    #score-bar span { color: #ff6eb4; }
+    #game-canvas {
+      image-rendering: pixelated;
+      border: 4px solid #ff6eb4;
+      box-shadow: 0 0 30px #ff6eb4aa, 0 0 60px #8b005744;
+      display: block;
+    }
+    #instructions {
+      margin-top: 8px; font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem; color: #aaa;
+      background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 4px;
+    }
+    #instructions b { color: #ff6eb4; }
+    #overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(10,0,20,0.92); z-index: 10; padding: 24px; text-align: center;
+    }
+    #overlay h2 {
+      font-family: 'Press Start 2P', monospace; font-size: 0.9rem;
+      color: #ff6eb4; text-shadow: 2px 2px 0 #8b0057;
+      margin-bottom: 16px; line-height: 1.8;
+    }
+    #overlay p { font-family: 'Press Start 2P', monospace; font-size: 0.55rem; color: #ddd; margin-bottom: 20px; line-height: 1.9; }
+    #overlay .btn {
+      font-family: 'Press Start 2P', monospace;
+      background: #ff6eb4; color: #1a0a2e; border: none;
+      padding: 12px 28px; font-size: 0.6rem; cursor: pointer;
+      box-shadow: 4px 4px 0 #8b0057; transition: transform 0.05s;
+    }
+    #overlay .btn:hover { transform: translate(2px,2px); box-shadow: 2px 2px 0 #8b0057; }
+    #win-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(10,0,20,0.94); z-index: 20; padding: 24px; text-align: center;
+    }
+    #win-overlay h1 {
+      font-family: 'Press Start 2P', monospace; font-size: 0.85rem;
+      color: #ff6eb4; text-shadow: 3px 3px 0 #8b0057, 0 0 20px #ff6eb4;
+      margin-bottom: 10px; line-height: 2;
+    }
+    #win-overlay .hearts { font-size: 2.5rem; margin: 8px 0; animation: pulse 0.8s infinite; }
+    #win-overlay p { font-family: 'Press Start 2P', monospace; font-size: 0.6rem; color: #ffb3d9; margin-bottom: 10px; line-height: 2; }
+    #win-overlay .btn {
+      font-family: 'Press Start 2P', monospace;
+      background: #ff6eb4; color: #1a0a2e; border: none;
+      padding: 12px 28px; font-size: 0.55rem; cursor: pointer;
+      box-shadow: 4px 4px 0 #8b0057; margin-top: 10px;
+    }
+    #win-overlay .btn:hover { transform: translate(2px,2px); box-shadow: 2px 2px 0 #8b0057; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    .confetti-container { position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden; }
+  </style>
+</head>
+<body>
+<div id="game-wrapper" style="position:relative;display:flex;flex-direction:column;align-items:center;">
+  <div id="title">💖 EL MUNDO DE KRISTEL 💖</div>
+  <div id="score-bar">
+    ★ ESQUIVADOS: <span id="score-display">0</span>
+    &nbsp;|&nbsp; ♛ RÉCORD: <span id="hi-score-display">0</span>
+  </div>
+  <div style="position:relative;">
+    <canvas id="game-canvas" width="900" height="300"></canvas>
+    <div id="overlay">
+      <h2>💖 EL JUEGO DE KRISTEL 💖<br><span style="font-size:0.6rem;color:#ffb3d9">(El amor de mi vida)</span></h2>
+      <p>¡Ayuda a Kristel a llegar<br>hasta Manuel!<br><br>Esquiva <span style="color:#ff6eb4">15 obstáculos</span><br>y descubre el final ♥</p>
+      <button class="btn" id="start-btn">▶ EMPEZAR</button>
+    </div>
+    <div id="win-overlay">
+      <div class="confetti-container" id="confetti-box"></div>
+      <h1>🎉 ¡FELICIDADES,<br>MI AMOR! 🎉</h1>
+      <div class="hearts">💖💕💖</div>
+      <p>¡Lo lograste!<br>¡Llegaste hasta Manuel!</p>
+      <p style="color:#ff6eb4;font-size:0.75rem;">✨ TE AMO MUCHO✨</p>
+      <button class="btn" id="replay-btn">↺ JUGAR DE NUEVO</button>
+    </div>
+  </div>
+  <div id="instructions">ESPACIO / FLECHA ARRIBA / TAP = SALTAR</div>
+  <audio id="bg-music" src="amorcompleto.mp3" loop preload="auto"></audio>
+</div>
+
+<script>
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+// Disable antialiasing for pixel art
+ctx.imageSmoothingEnabled = false;
+
+const W = canvas.width, H = canvas.height;
+const GROUND = H - 55;
+const OBSTACLES_TO_WIN = 15;
+const PX = 4; // pixel size
+
+const bgMusic = document.getElementById('bg-music');
+bgMusic.volume = 0.45;
+
+let state = 'idle';
+let score = 0, hiScore = 0;
+let frameCount = 0, speed = 4;
+let obstacles = [], clouds = [], stars = [];
+let manuelX = W + 300;
+let animTick = 0;
+
+// ─────────────────────────────────────────────
+//  PIXEL ART HELPER
+// ─────────────────────────────────────────────
+function px(col, row, color, size = PX) {
+  ctx.fillStyle = color;
+  ctx.fillRect(col * size, row * size, size, size);
+}
+
+// Draw a pixel-art sprite from a color map
+// map: array of strings, each char = one pixel
+// palette: object mapping char → color (space = transparent)
+function drawSprite(map, palette, ox, oy, size = PX) {
+  for (let r = 0; r < map.length; r++) {
+    for (let c = 0; c < map[r].length; c++) {
+      const ch = map[r][c];
+      if (ch === ' ' || !palette[ch]) continue;
+      ctx.fillStyle = palette[ch];
+      ctx.fillRect(ox + c * size, oy + r * size, size, size);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  KRISTEL PIXEL SPRITES
+//  Rasgos: cabello negro largo con puntas marrones,
+//  piel morena, ojos rasgados oscuros
+//  Frame 0 = pierna derecha adelante
+//  Frame 1 = pierna izquierda adelante
+// ─────────────────────────────────────────────
+const K_PAL = {
+  // Cabello
+  'H': '#0a0505',   // negro cabello
+  'h': '#1a0a00',   // negro cabello oscuro
+  'B': '#5c2800',   // marrón puntas
+  'b': '#7a3a00',   // marrón puntas claro
+  // Piel
+  'S': '#c08050',   // piel morena
+  's': '#b07040',   // piel sombra
+  // Ojos / cejas
+  'E': '#0a0515',   // ojo iris oscuro
+  'e': '#ffffff',   // blanco ojo
+  'C': '#0a0505',   // ceja
+  // Ropa
+  'W': '#f8f0f4',   // blusa blanca
+  'w': '#e8d8e0',   // blusa sombra
+  'P': '#e83890',   // falda rosa
+  'p': '#c8206a',   // falda sombra
+  'J': '#1a2080',   // jeans azul
+  'j': '#101860',   // jeans sombra
+  // Zapatos
+  'Z': '#ffffff',   // zapatilla blanca
+  'z': '#f06090',   // zapatilla detalle rosa
+  // Nariz / boca
+  'N': '#a06035',   // nariz
+  'M': '#c06858',   // boca
+  'm': '#d08878',   // labio superior
+  // Borde / sombra
+  'O': '#000000',   // outline
+};
+
+// 14 cols × 20 rows — frame caminata 0
+const KRISTEL_F0 = [
+'   HHHHHHHHH   ',
+'  HhHHHHHHHHhH  ',
+' HHH SSSSSS SHH ',
+' HhSSeEEeEESSHH ',
+' Hh SSSSSSSS HH ',
+' Hh SSMmmSSS SH ',
+' HhHSSSSSSHhHH  ',
+'  HhHHHHHhH     ',
+'   WWWWWWW      ',
+'   WwWWWWwW     ',
+'   PPPPPPPP     ',
+'   PppppppP     ',
+'  JJJ  jjj      ',
+' JJJ    jjj     ',
+' JJJ    jjj     ',
+'JJJ      jjj    ',
+'ZZZ      zzz    ',
+'zz        zz    ',
+'               ',
+'               ',
+];
+
+// frame caminata 1 (piernas alternadas)
+const KRISTEL_F1 = [
+'   HHHHHHHHH   ',
+'  HhHHHHHHHHhH  ',
+' HHH SSSSSS SHH ',
+' HhSSeEEeEESSHH ',
+' Hh SSSSSSSS HH ',
+' Hh SSMmmSSS SH ',
+' HhHSSSSSSHhHH  ',
+'  HhHHHHHhH     ',
+'   WWWWWWW      ',
+'   WwWWWWwW     ',
+'   PppPPppP     ',
+'  PPPPppPPPP    ',
+'  jjj  JJJ      ',
+' JJJ    jjj     ',
+' JJJ    jjj     ',
+' jjJ      JJj   ',
+'zzz      ZZZ    ',
+' zz      Zz     ',
+'               ',
+'               ',
+];
+
+// frame salto
+const KRISTEL_JUMP = [
+'   HHHHHHHHH   ',
+'  HhHHHHHHHHhH  ',
+' HHH SSSSSS SHH ',
+' HhSSeEEeEESSHH ',
+' Hh SSSSSSSS HH ',
+' Hh SSMmmSSS SH ',
+' HhHSSSSSSHhHH  ',
+'  HhHHHHHhH     ',
+'   WWWWWWW      ',
+'   WWWWWWW      ',
+'   PPPPPPPP     ',
+'  PPPPppPPPP    ',
+'  JJJJjjJJJJ    ',
+'   JJJ  jjj     ',
+'    JJ  jj      ',
+'    zz  ZZ      ',
+'    z    Z      ',
+'               ',
+'               ',
+'               ',
+];
+
+// Cabello largo que cuelga (se dibuja por separado abajo del sprite)
+// Puntas marrones en la parte baja
+
+// ─────────────────────────────────────────────
+//  MANUEL PIXEL SPRITES
+//  Rasgos: cabello negro flequillo,
+//  gafas rectangulares negras grandes,
+//  polo negro ribete blanco
+// ─────────────────────────────────────────────
+const M_PAL = {
+  // Cabello
+  'H': '#080808',  // negro
+  'h': '#141414',
+  // Piel
+  'S': '#f0c890',  // piel clara
+  's': '#d8a870',  // sombra
+  // Ojos
+  'E': '#0a0818',
+  'e': '#ffffff',
+  // Gafas (rasgo clave - grandes y rectangulares)
+  'G': '#0a0a0a',  // montura negra
+  'g': '#c8e4ff',  // lente reflejo
+  // Ropa polo negro
+  'K': '#101010',  // polo negro
+  'k': '#1e1e1e',  // polo sombra
+  'L': '#e8e8e8',  // ribete blanco
+  // Pantalón
+  'J': '#141428',
+  'j': '#0a0a1e',
+  // Zapatos
+  'Z': '#0a0a0a',
+  'z': '#242424',
+  // Cejas
+  'C': '#080808',
+  // Nariz boca
+  'N': '#c09060',
+  'M': '#b07050',
+};
+
+const MANUEL_SPRITE = [
+//01234567890123
+'   HHHHHHHHHH  ',  // 0 cabello
+'  HhHHHHHHHHhH ',  // 1 flequillo
+'  HHHhhhHHHHHH ',  // 2 flequillo cae
+'  Hh SSSSSS SH ',  // 3 cara
+' HhSsSSSSsSHH  ',  // 4
+' HHHCCCCC SSS  ',  // 5 cejas bajo flequillo
+' GGGEEGGEEGGG  ',  // 6 GAFAS + ojos
+' GgGEEGgGEEG   ',  // 7 GAFAS lentes
+' GGGGGGGGGGG   ',  // 8 GAFAS borde inf
+'   SSNSSSS     ',  // 9 nariz
+'   SSMSSSS      ',  // 10 boca
+'   SSSSSSS      ',  // 11 barbilla
+'   LKKKKKKL     ',  // 12 polo ribete
+'   KKKKKKKK     ',  // 13 polo
+'  KKkKKKKkKK    ',  // 14 polo
+'  KKkKKKKkKK    ',  // 15 polo
+'  KKK  KKKK     ',  // 16 pantalón
+'  KKK  KKKK     ',  // 17
+'  ZZZ  ZZZZ     ',  // 18
+'  zzz  zzzz     ',  // 19 zapatos
+];
+
+// ─────────────────────────────────────────────
+//  OBSTACLE SPRITES
+// ─────────────────────────────────────────────
+// Snoopy SIMPLE Y CLARO - cabeza redonda blanca grande, orejas negras, ojos, nariz
+const SNOOPY_PAL = {
+  'W': '#ffffff',  // cabeza blanca
+  'B': '#000000',  // orejas/ojos negro
+  'R': '#ff4466',  // nariz rosa
+};
+const SNOOPY_SPRITE = [
+'          ',
+'   WWWW   ',
+'  WWWWWW  ',
+' BWWWWWWB ',
+' BWWWWWWB ',
+' BWBWWBWB ',
+' BWWRWWWB ',
+' BWWWWWWB ',
+' BWWWWWWB ',
+'  WWWWWW  ',
+'   WWWW   ',
+'          ',
+'          ',
+];
+
+// Snoopy IDÉNTICO - mismo diseño claro y reconocible
+const SNOOPY_ALT_PAL = {
+  'W': '#ffffff',
+  'B': '#000000',
+  'R': '#ff4466',
+};
+const SNOOPY_ALT_SPRITE = [
+'          ',
+'   WWWW   ',
+'  WWWWWW  ',
+' BWWWWWWB ',
+' BWWWWWWB ',
+' BWBWWBWB ',
+' BWWRWWWB ',
+' BWWWWWWB ',
+' BWWWWWWB ',
+'  WWWWWW  ',
+'   WWWW   ',
+'          ',
+'          ',
+];
+
+function drawPixelSprite(map, pal, ox, oy, ps=PX) {
+  for(let r=0;r<map.length;r++){
+    for(let c=0;c<map[r].length;c++){
+      const ch=map[r][c];
+      if(ch===' '||!pal[ch]) continue;
+      ctx.fillStyle=pal[ch];
+      ctx.fillRect(Math.floor(ox+c*ps), Math.floor(oy+r*ps), ps, ps);
+    }
+  }
+}
+
+// Draw Kristel with long hair extension
+function drawKristel(x, y, jumping) {
+  const spriteH = 20 * PX;
+  const spriteW = 14 * PX;
+  const ox = x - spriteW / 2;
+  const oy = y - spriteH;
+
+  // Cabello largo por detrás (puntas marrones) - se dibuja ANTES del sprite
+  // Lado izquierdo del cabello largo
+  const hairX = ox - PX;
+  // Sección negra del cabello que cuelga
+  ctx.fillStyle = '#0a0505';
+  ctx.fillRect(hairX, oy + 2*PX, PX*2, PX*10);
+  ctx.fillRect(hairX - PX, oy + 8*PX, PX*2, PX*6);
+  // Lado derecho
+  ctx.fillRect(ox + spriteW - PX, oy + 2*PX, PX*2, PX*10);
+  ctx.fillRect(ox + spriteW, oy + 8*PX, PX*2, PX*6);
+  // Puntas marrones (abajo del cabello)
+  ctx.fillStyle = '#5c2800';
+  ctx.fillRect(hairX, oy + 12*PX, PX*2, PX*3);
+  ctx.fillRect(hairX - PX, oy + 14*PX, PX*2, PX*2);
+  ctx.fillRect(ox + spriteW - PX, oy + 12*PX, PX*2, PX*3);
+  ctx.fillRect(ox + spriteW, oy + 14*PX, PX*2, PX*2);
+  // Mechón marrón caoba dentro del cabello
+  ctx.fillStyle = '#7a3a00';
+  ctx.fillRect(hairX + PX, oy + 6*PX, PX, PX*4);
+  ctx.fillRect(ox + spriteW, oy + 6*PX, PX, PX*4);
+
+  // Sprite principal
+  let frame;
+  if (jumping) {
+    frame = KRISTEL_JUMP;
+  } else {
+    frame = Math.floor(animTick / 8) % 2 === 0 ? KRISTEL_F0 : KRISTEL_F1;
+  }
+  drawPixelSprite(frame, K_PAL, ox, oy, PX);
+
+  // Sombra pixel
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(x - PX*4, y, PX*8, PX);
+}
+
+function drawManuel(x, y) {
+  const spriteH = 20 * PX;
+  const spriteW = 14 * PX;
+  const ox = x - spriteW / 2;
+  const oy = y - spriteH;
+  drawPixelSprite(MANUEL_SPRITE, M_PAL, ox, oy, PX);
+  // Sombra
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(x - PX*4, y, PX*8, PX);
+}
+
+function drawObstacle(obs) {
+  const spriteH = 13 * PX;
+  const spriteW = 10 * PX;
+  const ox = obs.x - spriteW / 2;
+  const oy = obs.y - spriteH;
+  if (obs.type === 0) {
+    drawPixelSprite(SNOOPY_SPRITE, SNOOPY_PAL, ox, oy, PX);
+  } else {
+    drawPixelSprite(SNOOPY_ALT_SPRITE, SNOOPY_ALT_PAL, ox, oy, PX);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PIXEL CLOUDS & STARS
+// ─────────────────────────────────────────────
+function drawPixelCloud(x, y) {
+  const c = [[1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1]];
+  const widths=[6,8,10,8,6], offsets=[2,1,0,1,2];
+  ctx.fillStyle='rgba(255,255,255,0.8)';
+  c.forEach((row,r)=>{
+    row.forEach((_,cc)=>{
+      ctx.fillRect(x+offsets[r]*PX+cc*PX, y+r*PX, PX, PX);
+    });
+  });
+}
+
+// Pixel stars in sky
+function initStars() {
+  stars = [];
+  for(let i=0;i<30;i++) stars.push({x:Math.random()*W, y:Math.random()*(GROUND*0.6), b:Math.random()});
+}
+
+// ─────────────────────────────────────────────
+//  PIXEL SUN
+// ─────────────────────────────────────────────
+function drawPixelSun(x, y) {
+  // Rayos
+  ctx.fillStyle = '#FFD700';
+  [[-1,-3],[0,-3],[1,-3],[-3,-1],[-3,0],[-3,1],[3,-1],[3,0],[3,1],[-1,3],[0,3],[1,3],[-2,-2],[2,-2],[-2,2],[2,2]].forEach(([dc,dr])=>{
+    ctx.fillRect(x+dc*PX, y+dr*PX, PX, PX);
+  });
+  // Cuerpo sol 3x3
+  ctx.fillStyle='#FFE566';
+  for(let r=-1;r<=1;r++) for(let c=-1;c<=1;c++) ctx.fillRect(x+c*PX,y+r*PX,PX,PX);
+  ctx.fillStyle='#FFF0AA';
+  ctx.fillRect(x,y,PX,PX); // brillo centro
+}
+
+// ─────────────────────────────────────────────
+//  PLAYER STATE
+// ─────────────────────────────────────────────
+const player = {
+  x: 130, y: GROUND,
+  vy: 0, grounded: true,
+  jumpPower: -15, gravity: 0.65,
+};
+
+function jump() {
+  if (player.grounded && state === 'running') {
+    player.vy = player.jumpPower;
+    player.grounded = false;
+  }
+  if (state === 'idle') startGame();
+  if (state === 'dead') restartGame();
+}
+
+let nextObstacle = 100, obstacleCount = 0;
+
+function initGame() {
+  player.y=GROUND; player.vy=0; player.grounded=true;
+  obstacles=[]; nextObstacle=100; obstacleCount=0;
+  score=0; speed=4; manuelX=W+300; animTick=0;
+  clouds=[{x:100,y:40},{x:320,y:60},{x:560,y:30},{x:750,y:55},{x:460,y:50}];
+  initStars();
+  updateScoreDisplay();
+}
+
+function startGame() {
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('win-overlay').style.display='none';
+  state='running'; initGame();
+  bgMusic.currentTime = 0;
+  bgMusic.play().catch(() => {});
+}
+
+function restartGame() {
+  document.getElementById('win-overlay').style.display='none';
+  document.getElementById('overlay').style.display='none';
+  state='running'; initGame();
+  bgMusic.currentTime = 0;
+  bgMusic.play().catch(() => {});
+}
+
+function checkLoginAccess() {
+  if (sessionStorage.getItem('loggedIn') !== 'true') {
+    window.location.href = 'login.html';
+  }
+}
+
+function updateScoreDisplay() {
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('hi-score-display').textContent = hiScore;
+}
+
+function triggerWin() {
+  state='won';
+  if(score>hiScore) hiScore=score;
+  updateScoreDisplay();
+  document.getElementById('win-overlay').style.display='flex';
+  spawnConfetti();
+}
+
+function spawnConfetti() {
+  const box=document.getElementById('confetti-box');
+  box.innerHTML='';
+  const cols=['#ff6eb4','#f9d71c','#7bdcff','#a8edaa','#ffb347','#d63384'];
+  for(let i=0;i<70;i++){
+    const el=document.createElement('div');
+    el.style.cssText=`position:absolute;left:${Math.random()*100}%;top:-10px;width:${8+Math.random()*8}px;height:${8+Math.random()*8}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'0'};animation:fall ${1.5+Math.random()*2}s ${Math.random()*2}s linear forwards;`;
+    box.appendChild(el);
+  }
+  if(!document.getElementById('cstyle')){
+    const s=document.createElement('style'); s.id='cstyle';
+    s.textContent='@keyframes fall{to{transform:translateY(320px) rotate(720deg);opacity:0;}}';
+    document.head.appendChild(s);
+  }
+}
+
+function checkCollision(obs) {
+  // hitbox ajustada al sprite pixel art
+  const pLeft = player.x - PX*4, pRight = player.x + PX*4;
+  const pTop = player.y - 18*PX, pBot = player.y;
+  const oLeft = obs.x - 4*PX, oRight = obs.x + 4*PX;
+  const oTop = obs.y - 13*PX, oBot = obs.y;
+  return pLeft < oRight && pRight > oLeft && pTop < oBot && pBot > oTop;
+}
+
+function update() {
+  if(state!=='running') return;
+  frameCount++; animTick++;
+  if(score<5) speed=4; else if(score<10) speed=5; else speed=6;
+
+  // Player physics
+  if(!player.grounded){
+    player.vy += player.gravity;
+    player.y += player.vy;
+    if(player.y >= GROUND){ player.y=GROUND; player.vy=0; player.grounded=true; }
+  }
+
+  // Clouds
+  clouds.forEach(c=>{ c.x -= 0.5; if(c.x<-120)c.x=W+80; });
+
+  // Obstacles
+  nextObstacle--;
+  if(nextObstacle<=0 && obstacleCount<OBSTACLES_TO_WIN){
+    obstacles.push({x:W+50, y:GROUND, type:Math.random()<0.5?0:1});
+    obstacleCount++;
+    nextObstacle = 100 + Math.floor(Math.random()*50) - score*2;
+    if(nextObstacle < 60) nextObstacle = 60;
+  }
+
+  obstacles.forEach(obs=>{
+    obs.x -= speed;
+    if(checkCollision(obs)){ if(score>hiScore)hiScore=score; state='dead'; showDeadOverlay(); }
+    if(obs.x < player.x - 50 && !obs.scored){ obs.scored=true; score++; updateScoreDisplay(); }
+  });
+  obstacles = obstacles.filter(o=>o.x>-80);
+
+  // Win condition
+  if(score>=OBSTACLES_TO_WIN && obstacles.length===0){
+    if(manuelX > player.x + 200){ manuelX -= speed*0.6; }
+    else { triggerWin(); }
+  }
+}
+
+function showDeadOverlay() {
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<h2>💔 ¡UY,<br>CHOCASTE!</h2><p>¡Kristel no se rinde!<br>¡Vuelve a intentarlo! 💪</p><p style="font-size:0.45rem;color:#888;margin-bottom:16px;">OBSTÁCULOS: ${score}</p><button class="btn" id="rb2">↺ OTRA VEZ</button>`;
+  ov.style.display='flex';
+  document.getElementById('rb2').addEventListener('click',restartGame);
+}
+
+// ─────────────────────────────────────────────
+//  DRAW
+// ─────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.imageSmoothingEnabled = false;
+
+  // SKY - pixel art sky gradient (horizontal bands)
+  const skyColors = ['#2d1b69','#3d2b79','#4d3b8e','#6a55aa','#8877cc','#aaa0dd'];
+  const bandH = Math.floor(GROUND / skyColors.length);
+  skyColors.forEach((c,i)=>{ ctx.fillStyle=c; ctx.fillRect(0,i*bandH,W,bandH+2); });
+
+  // Stars (twinkle)
+  stars.forEach(s=>{
+    const bright = s.b + Math.sin(frameCount*0.05 + s.x)*0.5;
+    ctx.fillStyle = bright > 0.5 ? '#ffffff' : '#aaaacc';
+    ctx.fillRect(Math.floor(s.x), Math.floor(s.y), PX/2, PX/2);
+  });
+
+  // Moon pixel art
+  ctx.fillStyle='#fff8e0';
+  [[0,1,0],[1,1,1],[1,1,1],[0,1,1],[0,1,0]].forEach((row,r)=>{
+    row.forEach((v,c)=>{ if(v){ctx.fillRect(W-120+c*PX*2,30+r*PX*2,PX*2,PX*2);} });
+  });
+  // Moon shadow
+  ctx.fillStyle='#4d3b8e';
+  [[0,0,1],[0,0,1],[0,1,1],[0,1,0],[0,0,0]].forEach((row,r)=>{
+    row.forEach((v,c)=>{ if(v){ctx.fillRect(W-120+c*PX*2,30+r*PX*2,PX*2,PX*2);} });
+  });
+
+  // Clouds
+  clouds.forEach(c=>drawPixelCloud(Math.floor(c.x),Math.floor(c.y)));
+
+  // GROUND - pixel art grass blocks
+  // Base tierra
+  ctx.fillStyle='#2d4a1e';
+  ctx.fillRect(0, GROUND, W, H-GROUND);
+  // Capa pasto arriba
+  ctx.fillStyle='#4a7a30';
+  ctx.fillRect(0, GROUND, W, PX*2);
+  ctx.fillStyle='#5a9a3a';
+  ctx.fillRect(0, GROUND, W, PX);
+  // Detalle tierra pixel art
+  ctx.fillStyle='#3d6128';
+  for(let gx=0;gx<W;gx+=PX*4){
+    ctx.fillRect(gx, GROUND+PX*2, PX*2, PX);
+    ctx.fillRect(gx+PX*6, GROUND+PX*4, PX*3, PX);
+  }
+  // Florecitas pixel
+  for(let fx=20;fx<W;fx+=60){
+    const off=(fx*7)%30;
+    ctx.fillStyle=['#ff6eb4','#f9d71c','#ff99cc','#aaffaa'][Math.floor(fx/60)%4];
+    ctx.fillRect(fx, GROUND-PX*2, PX, PX);
+    ctx.fillRect(fx-PX, GROUND-PX, PX, PX);
+    ctx.fillRect(fx+PX, GROUND-PX, PX, PX);
+    ctx.fillStyle='#f9d71c';
+    ctx.fillRect(fx, GROUND-PX, PX, PX);
+  }
+
+  // Ground line
+  ctx.fillStyle='#6ab040';
+  ctx.fillRect(0, GROUND-PX, W, PX);
+
+  // Manuel (cuando aparece)
+  if(score >= OBSTACLES_TO_WIN && obstacles.length===0 && state==='running'){
+    drawManuel(Math.floor(manuelX), GROUND);
+    // Corazón pixel flotante
+    if(manuelX - player.x < 300){
+      const hx = Math.floor((player.x+manuelX)/2);
+      const hy = GROUND - 130 + Math.floor(Math.sin(frameCount*0.08)*8);
+      const alpha = Math.min(1,(300-(manuelX-player.x))/120);
+      ctx.save(); ctx.globalAlpha=alpha;
+      // Corazón pixel art
+      const hpal = {1:'#ff4488'};
+      const heart = ['01110111','11111111','01111110','00111100','00011000'];
+      heart.forEach((row,r)=>{
+        for(let c=0;c<row.length;c++){
+          if(row[c]==='1'){ctx.fillStyle='#ff4488';ctx.fillRect(hx-16+c*4,hy+r*4,4,4);}
+        }
+      });
+      ctx.restore();
+    }
+  }
+
+  // Obstacles
+  obstacles.forEach(obs=>drawObstacle(obs));
+
+  // Kristel
+  drawKristel(player.x, player.y, !player.grounded);
+
+  // HUD - progress bar pixel style
+  const prog = Math.min(score/OBSTACLES_TO_WIN, 1);
+  // Fondo barra
+  ctx.fillStyle='#1a0a2e';
+  ctx.fillRect(W/2-105, 10, 210, 18);
+  ctx.fillStyle='#ff6eb4';
+  ctx.fillRect(W/2-105, 10, 1, 18); ctx.fillRect(W/2+105, 10, 1, 18);
+  ctx.fillRect(W/2-105, 10, 210, 1); ctx.fillRect(W/2-105, 27, 210, 1);
+  // Relleno
+  ctx.fillStyle='#ff4488';
+  ctx.fillRect(W/2-103, 12, Math.floor(206*prog), 14);
+  // Texto
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 8px "Press Start 2P", monospace';
+  ctx.textAlign='center';
+  ctx.fillText(`${score}/${OBSTACLES_TO_WIN}`, W/2, 23);
+  ctx.textAlign='left';
+
+  // Flash muerte
+  if(state==='dead'){
+    ctx.fillStyle='rgba(255,0,80,0.12)'; ctx.fillRect(0,0,W,H);
+  }
+}
+
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
+});
+canvas.addEventListener('click',()=>jump());
+canvas.addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('replay-btn').addEventListener('click', restartGame);
+
+checkLoginAccess();
+initStars();
+loop();
+</script>
+</body>
+</html>
